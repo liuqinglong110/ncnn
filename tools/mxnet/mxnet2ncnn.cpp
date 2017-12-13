@@ -20,6 +20,7 @@
 #include <set>
 #include <string>
 #include <vector>
+#include <iostream>
 
 class MXNetParam;
 class MXNetNode
@@ -386,8 +387,23 @@ static bool read_mxnet_json(const char* jsonpath, std::vector<MXNetNode>& nodes)
                 continue;
             }
 
+            nscan = sscanf(line, "      \"attrs\": {\"%255[^\"]\": \"%255[^\"]\"}", key, value);
+            if (nscan == 2)
+            {
+                n.attrs[key] = value;
+//                 fprintf(stderr, "# %s = %s\n", key, value);
+                continue;
+            }
+
             //      "attr": {
             if (memcmp(line, "      \"attr\": {", 15) == 0)
+            {
+                in_attr_block = true;
+                continue;
+            }
+
+            //      "attrs": {
+            if (memcmp(line, "      \"attrs\": {", 16) == 0)
             {
                 in_attr_block = true;
                 continue;
@@ -689,6 +705,7 @@ int main(int argc, char** argv)
     {
         const MXNetNode& n = nodes[i];
 
+        //recognize  op type
         if (n.op == "null")
         {
             if (n.is_weight())
@@ -762,9 +779,15 @@ int main(int argc, char** argv)
         {
             fprintf(pp, "%-16s", "Pooling");
         }
-        else if (n.op == "SoftmaxOutput")
+        else if (n.op == "SoftmaxOutput" || n.op == "SoftmaxActivation")
         {
+            //todo: maybe need to add permute
             fprintf(pp, "%-16s", "Softmax");
+        }
+        else if(n.op == "LinearRegressionOutput") {
+            printf("not need to do anythiny in this layer: %s\n", n.op.c_str());
+        } else if (n.op == "transpose") {
+            fprintf(pp, "%-16s", "Permute");
         }
         else
         {
@@ -789,6 +812,8 @@ int main(int argc, char** argv)
         }
 
         fprintf(pp, " %-32s %d 1", n.name.c_str(), input_size);
+
+        //setup inputs
 
         for (int j=0; j<(int)n.inputs.size(); j++)
         {
@@ -821,6 +846,8 @@ int main(int argc, char** argv)
         }
 
         fprintf(pp, " %s", n.name.c_str());
+
+        //setup op attr and write the weight
 
         if (n.op == "null")
         {
@@ -978,8 +1005,68 @@ int main(int argc, char** argv)
                 fprintf(pp, " 3=%d", pad[0]);
             fprintf(pp, " 4=%d", global_pool);
         }
-        else if (n.op == "SoftmaxOutput")
+        else if (n.op == "SoftmaxOutput" || n.op == "SoftmaxActivation")
         {
+        } else if (n.op == "transpose") {
+            std::vector<int> axes = n.attr("axes");
+            int order_size = axes.size();
+            int order_type = 0;
+            if (order_size == 0)
+                order_type = 0;
+            if (order_size == 1)
+            {
+                int order0 = axes[0];
+                if (order0 == 0)
+                    order_type = 0;
+                // permute with N not supported
+            }
+            if (order_size == 2)
+            {
+                int order0 = axes[0];
+                int order1 = axes[1];
+                if (order0 == 0)
+                {
+                    if (order1 == 1) // 0 1 2 3
+                        order_type = 0;
+                    else if (order1 == 2) // 0 2 1 3
+                        order_type = 2;
+                    else if (order1 == 3) // 0 3 1 2
+                        order_type = 4;
+                }
+                // permute with N not supported
+            }
+            if (order_size == 3 || order_size == 4)
+            {
+                int order0 = axes[0];
+                int order1 = axes[1];
+                int order2 = axes[2];
+                if (order0 == 0)
+                {
+                    if (order1 == 1)
+                    {
+                        if (order2 == 2) // 0 1 2 3
+                            order_type = 0;
+                        if (order2 == 3) // 0 1 3 2
+                            order_type = 1;
+                    }
+                    else if (order1 == 2)
+                    {
+                        if (order2 == 1) // 0 2 1 3
+                            order_type = 2;
+                        if (order2 == 3) // 0 2 3 1
+                            order_type = 3;
+                    }
+                    else if (order1 == 3)
+                    {
+                        if (order2 == 1) // 0 3 1 2
+                            order_type = 4;
+                        if (order2 == 2) // 0 3 2 1
+                            order_type = 5;
+                    }
+                }
+                // permute with N not supported
+            }
+            fprintf(pp, " 0=%d", order_type);
         }
         else
         {
