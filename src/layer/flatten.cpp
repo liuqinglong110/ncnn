@@ -24,8 +24,20 @@ Flatten::Flatten()
     support_inplace = false;
 }
 
+int Flatten::load_param(const ParamDict& pd)
+{
+    flatten_flag = pd.get(0, 0);
+
+    return 0;
+}
+
 int Flatten::forward(const Mat& bottom_blob, Mat& top_blob) const
 {
+    if (flatten_flag == -1) //dump flatten
+    {
+        top_blob = bottom_blob;
+        return 0;
+    }
     int w = bottom_blob.w;
     int h = bottom_blob.h;
     int channels = bottom_blob.c;

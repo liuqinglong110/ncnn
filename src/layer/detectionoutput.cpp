@@ -144,7 +144,10 @@ static void nms_sorted_bboxes(const std::vector<BBoxRect>& bboxes, std::vector<i
 int DetectionOutput::forward(const std::vector<Mat>& bottom_blobs, std::vector<Mat>& top_blobs) const
 {
     const Mat& location = bottom_blobs[0];
-    const Mat& confidence = bottom_blobs[1];
+    Mat confidence = bottom_blobs[1];
+    if (confidence.h > 1) {
+        confidence = confidence.reshape(confidence.w * confidence.h * confidence.c);
+    }
     const Mat& priorbox = bottom_blobs[2];
 
     const int num_prior = priorbox.w / 4;

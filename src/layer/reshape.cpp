@@ -44,6 +44,11 @@ int Reshape::load_param(const ParamDict& pd)
 
 int Reshape::forward(const Mat& bottom_blob, Mat& top_blob) const
 {
+    if (permute == -1) //dump Reshape
+    {
+        top_blob = bottom_blob;
+        return 0;
+    }
     int total = bottom_blob.w * bottom_blob.h * bottom_blob.c;
 
     if (ndim == 1)

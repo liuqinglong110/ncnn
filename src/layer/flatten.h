@@ -23,8 +23,11 @@ class Flatten : public Layer
 {
 public:
     Flatten();
-
+    virtual int load_param(const ParamDict& pd);
     virtual int forward(const Mat& bottom_blob, Mat& top_blob) const;
+
+public:
+    int flatten_flag;
 };
 
 } // namespace ncnn

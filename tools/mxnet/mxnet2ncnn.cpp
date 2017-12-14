@@ -638,6 +638,8 @@ int main(int argc, char** argv)
         n.nodes = &nodes;
         n.params = &params;
 
+
+
         const std::string& output_name = n.name;
 
         if (n.op == "null")
@@ -741,6 +743,19 @@ int main(int argc, char** argv)
     for (int i=0; i<node_count; i++)
     {
         const MXNetNode& n = nodes[i];
+
+        std::string lastop = "";
+        std::string nextop = "";
+        std::string nextnextop = "";
+        if (i > 0) {
+            lastop = nodes[i-1].op;
+        }
+        if (i < node_count-1) {
+            nextop = nodes[i+1].op;
+        }
+        if (i < node_count-2) {
+            nextnextop = nodes[i+2].op;
+        }
 
         //recognize  op type
         if (n.op == "null")
@@ -937,8 +952,12 @@ int main(int argc, char** argv)
         }
         else if (n.op == "Concat")
         {
-            int dim = n.attr("dim");
-            fprintf(pp, " 0=%d", dim-1);
+            if (nextnextop == "_contrib_MultiBoxDetection") {
+                fprintf(pp, " 0=%d", 1);
+            } else {
+                int dim = n.attr("dim");
+                fprintf(pp, " 0=%d", dim - 1);
+            }
         }
         else if (n.op == "Convolution")
         {
@@ -982,6 +1001,10 @@ int main(int argc, char** argv)
         }
         else if (n.op == "Flatten")
         {
+            if (lastop == "_contrib_MultiBoxPrior") {
+                //indeed not need flatten
+                fprintf(pp, " 0=%d", -1);
+            }
         }
         else if (n.op == "FullyConnected")
         {
@@ -1056,9 +1079,15 @@ int main(int argc, char** argv)
         }
         else if (n.op == "SoftmaxOutput" || n.op == "SoftmaxActivation")
         {
+            //todo: set permute type to 0 for privious layer
+            fprintf(pp, " 0=%d", 1); //axis
         } else if (n.op == "transpose") {
+
             std::vector<int> axes = n.attr("axes");
             int order_size = axes.size();
+            if (nextop == "SoftmaxActivation") {
+                order_size = 0;
+            }
             int order_type = 0;
             if (order_size == 0)
                 order_type = 0;
@@ -1120,21 +1149,25 @@ int main(int argc, char** argv)
             std::vector<int> shapes = n.attr("shape");
             if (shapes.size() == 1)
             {
-                fprintf(pp, " 0=%ld 1=-233 2=-233", shapes[0]);
+                fprintf(pp, " 0=%d 1=-233 2=-233", shapes[0]);
             }
             else if (shapes.size() == 2)
             {
-                fprintf(pp, " 0=%ld 1=%ld 2=-233", shapes[1], shapes[0]);
+                fprintf(pp, " 0=%d 1=%d 2=-233", shapes[1], shapes[0]);
             }
             else if (shapes.size() == 3)
             {
-                fprintf(pp, " 0=%ld 1=%ld 2=%ld", shapes[2], shapes[1], shapes[0]);
+                fprintf(pp, " 0=%d 1=%d 2=%d", shapes[2], shapes[1], shapes[0]);
             }
             else
             {
-                fprintf(pp, " 0=%ld 1=%ld 2=%ld", shapes[3], shapes[2], shapes[1]);
+                fprintf(pp, " 0=%d 1=%d 2=%d", shapes[3], shapes[2], shapes[1]);
             }
-            fprintf(pp, " 3=0");// permute
+            if (nextop == "_contrib_MultiBoxDetection") {
+                fprintf(pp, " 3=-1"); //not reshape
+            } else {
+                fprintf(pp, " 3=0");// permute
+            }
         } else if (n.op == "L2Normalization") {
             fprintf(pp, " 0=%d", 0);
             fprintf(pp, " 1=%d", 0);
@@ -1212,11 +1245,11 @@ int main(int argc, char** argv)
         } else if (n.op == "_contrib_MultiBoxDetection")
         {
 
-            fprintf(pp, " 0=%d", 2);
+            fprintf(pp, " 0=%d", 21);
             fprintf(pp, " 1=%f", 0.5);
             fprintf(pp, " 2=%d", 400);
             fprintf(pp, " 3=%d", 400);
-            fprintf(pp, " 4=%f", 0.6);
+            fprintf(pp, " 4=%f", 0.1);
         }
         else
         {
