@@ -21,6 +21,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <math.h>
 
 class MXNetParam;
 class MXNetNode
@@ -38,6 +39,7 @@ public:
         operator float() const { return _n->attr_f(_key); }
         operator std::string() const { return _n->attr_s(_key); }
         operator std::vector<int>() const { return _n->attr_ai(_key); }
+        operator std::vector<float>() const {return _n->attr_af(_key); }
     };
 
     AttrProxy attr(const char* key) const { return AttrProxy(this, key); }
@@ -46,6 +48,7 @@ public:
     float attr_f(const char* key) const;
     std::string attr_s(const char* key) const;
     std::vector<int> attr_ai(const char* key) const;
+    std::vector<float> attr_af(const char* key) const;
 
 public:
     bool is_weight() const;
@@ -146,6 +149,25 @@ std::vector<int> MXNetNode::attr_ai(const char* key) const
     return list;
 }
 
+std::vector<float> MXNetNode::attr_af(const char *key) const {
+    const std::map<std::string, std::string>::const_iterator it = attrs.find(key);
+    if (it == attrs.end())
+        return std::vector<float>();
+    std::vector<float> list;
+    float value = 0;
+    int c = 0;
+    int nconsumed = 0;
+    int nscan = sscanf(it->second.c_str() + c, "%*[(,]%f%n", &value, &nconsumed);
+    while (nscan == 1)
+    {
+        list.push_back(value);
+        value = 0;
+        c += nconsumed;
+        nscan = sscanf(it->second.c_str() + c, "%*[(,]%d%n", &value, &nconsumed);
+    }
+    return list;
+}
+
 bool MXNetNode::is_weight() const
 {
     for (int i=0; i<(int)(*params).size(); i++)
@@ -202,6 +224,11 @@ std::vector<float> MXNetNode::weight(int i, int init_len) const
             else if (p.init == "[\\$one\\$, {}]")
             {
                 data.resize(init_len, 1.f);
+            } else {
+                //"[\"constant\", {\"value\": 20}]"
+                float value = 0;
+                int nscan = sscanf(p.init.c_str(), "%f", &value);
+
             }
         }
 
@@ -617,10 +644,12 @@ int main(int argc, char** argv)
         {
             if (n.is_weight())
             {
+                //std::cout << "is weight " << n.name << std::endl;
                 weight_nodes.push_back(i);
             }
             else
             {
+                //std::cout << "is not weight " << n.name << std::endl;
                 if (n.has_attr("__init__"))
                 {
                     // init weight param
@@ -788,6 +817,14 @@ int main(int argc, char** argv)
             printf("not need to do anythiny in this layer: %s\n", n.op.c_str());
         } else if (n.op == "transpose") {
             fprintf(pp, "%-16s", "Permute");
+        } else if (n.op == "Reshape") {
+            fprintf(pp, "%-16s", "Reshape");
+        } else if (n.op == "L2Normalization") {
+            fprintf(pp, "%-16s", "Normalize");
+        } else if (n.op == "broadcast_mul") {
+            fprintf(pp, "%-16s", "Scale");
+        } else if (n.op == "_contrib_MultiBoxPrior") {
+
         }
         else
         {
@@ -1067,6 +1104,99 @@ int main(int argc, char** argv)
                 // permute with N not supported
             }
             fprintf(pp, " 0=%d", order_type);
+        } else if (n.op == "Reshape") {
+            std::vector<int> shapes = n.attr("shape");
+            if (shapes.size() == 1)
+            {
+                fprintf(pp, " 0=%ld 1=-233 2=-233", shapes[0]);
+            }
+            else if (shapes.size() == 2)
+            {
+                fprintf(pp, " 0=%ld 1=%ld 2=-233", shapes[1], shapes[0]);
+            }
+            else if (shapes.size() == 3)
+            {
+                fprintf(pp, " 0=%ld 1=%ld 2=%ld", shapes[2], shapes[1], shapes[0]);
+            }
+            else
+            {
+                fprintf(pp, " 0=%ld 1=%ld 2=%ld", shapes[3], shapes[2], shapes[1]);
+            }
+            fprintf(pp, " 3=0");// permute
+        } else if (n.op == "L2Normalization") {
+            fprintf(pp, " 0=%d", 0);
+            fprintf(pp, " 1=%d", 0);
+            //todo: mxnet normalize eps is 1e-10
+            fprintf(pp, " 2=%f", 1e-6);
+            fprintf(pp, " 3=%d", 1);
+            float scale = 1.0;
+
+            fwrite(&scale, sizeof(float), 1, bp);
+        } else if (n.op == "broadcast_mul") {
+            int channels = 512;
+            std::vector<float> scale_data(channels);
+            for (int t = 0; t < scale_data.size(); t++) {
+                scale_data[t] = 20;
+            }
+            fprintf(pp, " 0=%d", scale_data.size());
+            fprintf(pp, " 1=%d", 0);
+            fwrite(scale_data.data(), sizeof(float), scale_data.size(), bp);
+        } else if (n.op == "_contrib_MultiBoxPrior") {
+            std::vector<int> aspect_ratio = n.attr("ratios");
+            int num_aspect_ratio = aspect_ratio.size();
+            for (int j = 0; j < aspect_ratio.size(); j++)
+            {
+                float ar = aspect_ratio[j];
+                if (fabs(ar - 1.) < 1e-6) {
+                    num_aspect_ratio--;
+                }
+            }
+
+            float variances[4] = {0.1f, 0.1f, 0.2f, 0.2f};
+
+
+            int flip = 0;
+            int clip = 0;
+            int image_width = -233;
+            int image_height = -233;
+
+            float step_width = -233;
+            float step_height = -233;
+
+            std::vector<float> sizes = n.attr("sizes");
+
+
+            fprintf(pp, " -23300=%d", 1);
+
+            int width = 300;
+
+            fprintf(pp, ",%f", sizes[0] * width);
+
+            fprintf(pp, " -23301=%d", 1);
+
+            fprintf(pp, ",%f", sizes[1] * width);
+
+            fprintf(pp, " -23302=%d", num_aspect_ratio);
+            for (int j=0; j < aspect_ratio.size(); j++)
+            {
+                float ar = aspect_ratio[j];
+                if (fabs(ar - 1.) < 1e-6) {
+                    continue;
+                }
+                fprintf(pp, ",%f", ar);
+            }
+            fprintf(pp, " 3=%f", variances[0]);
+            fprintf(pp, " 4=%f", variances[1]);
+            fprintf(pp, " 5=%f", variances[2]);
+            fprintf(pp, " 6=%f", variances[3]);
+            fprintf(pp, " 7=%d", flip);
+            fprintf(pp, " 8=%d", clip);
+            fprintf(pp, " 9=%d", image_width);
+            fprintf(pp, " 10=%d", image_height);
+            fprintf(pp, " 11=%f", step_width);
+            fprintf(pp, " 12=%f", step_height);
+            float offset = 0.5;
+            fprintf(pp, " 13=%f", offset);
         }
         else
         {
