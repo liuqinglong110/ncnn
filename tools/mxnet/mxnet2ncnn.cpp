@@ -682,6 +682,14 @@ int main(int argc, char** argv)
 
             inputs.push_back(input_index);
         }
+
+        //replace order of detection output
+        if (n.op == "_contrib_MultiBoxDetection") {
+            int temp = inputs[0];
+            inputs[0] = inputs[1];
+            inputs[1] = temp;
+        }
+
         n.inputs = inputs;
         n.weights = weights;
 
@@ -824,7 +832,9 @@ int main(int argc, char** argv)
         } else if (n.op == "broadcast_mul") {
             fprintf(pp, "%-16s", "Scale");
         } else if (n.op == "_contrib_MultiBoxPrior") {
-
+            fprintf(pp, "%-16s", "PriorBox");
+        } else if (n.op == "_contrib_MultiBoxDetection") {
+            fprintf(pp, "%-16s", "DetectionOutput");
         }
         else
         {
@@ -841,6 +851,8 @@ int main(int argc, char** argv)
                 input_size--;
             }
         }
+
+
 
         if (n.op == "SoftmaxOutput")
         {
@@ -1157,8 +1169,8 @@ int main(int argc, char** argv)
 
             int flip = 0;
             int clip = 0;
-            int image_width = -233;
-            int image_height = -233;
+            int image_width = 300;
+            int image_height = 300;
 
             float step_width = -233;
             float step_height = -233;
@@ -1197,6 +1209,14 @@ int main(int argc, char** argv)
             fprintf(pp, " 12=%f", step_height);
             float offset = 0.5;
             fprintf(pp, " 13=%f", offset);
+        } else if (n.op == "_contrib_MultiBoxDetection")
+        {
+
+            fprintf(pp, " 0=%d", 2);
+            fprintf(pp, " 1=%f", 0.5);
+            fprintf(pp, " 2=%d", 400);
+            fprintf(pp, " 3=%d", 400);
+            fprintf(pp, " 4=%f", 0.6);
         }
         else
         {
