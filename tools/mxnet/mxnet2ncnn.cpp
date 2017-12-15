@@ -163,7 +163,7 @@ std::vector<float> MXNetNode::attr_af(const char *key) const {
         list.push_back(value);
         value = 0;
         c += nconsumed;
-        nscan = sscanf(it->second.c_str() + c, "%*[(,]%d%n", &value, &nconsumed);
+        nscan = sscanf(it->second.c_str() + c, "%*[(,]%f%n", &value, &nconsumed);
     }
     return list;
 }
@@ -1187,7 +1187,7 @@ int main(int argc, char** argv)
             fprintf(pp, " 1=%d", 0);
             fwrite(scale_data.data(), sizeof(float), scale_data.size(), bp);
         } else if (n.op == "_contrib_MultiBoxPrior") {
-            std::vector<int> aspect_ratio = n.attr("ratios");
+            std::vector<float> aspect_ratio = n.attr("ratios");
             int num_aspect_ratio = aspect_ratio.size();
             for (int j = 0; j < aspect_ratio.size(); j++)
             {
@@ -1247,9 +1247,9 @@ int main(int argc, char** argv)
 
             fprintf(pp, " 0=%d", 21);
             fprintf(pp, " 1=%f", 0.5);
-            fprintf(pp, " 2=%d", 400);
-            fprintf(pp, " 3=%d", 400);
-            fprintf(pp, " 4=%f", 0.1);
+            fprintf(pp, " 2=%d", 100);
+            fprintf(pp, " 3=%d", 100);
+            fprintf(pp, " 4=%f", 0.5);
         }
         else
         {
