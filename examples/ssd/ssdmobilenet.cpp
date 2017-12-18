@@ -22,6 +22,8 @@
 
 #include "net.h"
 
+#define mxnet_ssd false
+
 struct Object{
     cv::Rect rec;
     int class_id;
@@ -44,22 +46,48 @@ static int detect_mobilenet(cv::Mat& raw_img, float show_threshold)
      */
     int img_h = raw_img.size().height;
     int img_w = raw_img.size().width;
-    mobilenet.load_param("mobilenet_ssd_voc_ncnn.param");
-    mobilenet.load_model("mobilenet_ssd_voc_ncnn.bin");
+
+#if mxnet_ssd
+        mobilenet.load_param("ncnn_nobn.proto");
+        mobilenet.load_model("ncnn_nobn.bin");
+#else
+        mobilenet.load_param("mobilenet_ssd_voc_ncnn.param");
+        mobilenet.load_model("mobilenet_ssd_voc_ncnn.bin");
+#endif
+
+//    mobilenet.load_param("ncnn.proto");
+//    mobilenet.load_model("ncnn.bin");
+
     int input_size = 300;
     ncnn::Mat in = ncnn::Mat::from_pixels_resize(raw_img.data, ncnn::Mat::PIXEL_BGR, raw_img.cols, raw_img.rows, input_size, input_size);
-
+    //ncnn::Mat in = ncnn::Mat::from_pixels(raw_img.data, ncnn::Mat::PIXEL_BGR, raw_img.cols, raw_img.rows);
+#if mxnet_ssd
+    const float mean_vals[3] = {123, 117, 104};
+    const float norm_vals[3] = {1.0,1.0,1.0};
+#else
     const float mean_vals[3] = {127.5f, 127.5f, 127.5f};
     const float norm_vals[3] = {1.0/127.5,1.0/127.5,1.0/127.5};
+#endif
     in.substract_mean_normalize(mean_vals, norm_vals);
 
     ncnn::Mat out;
 
-    ncnn::Extractor ex = mobilenet.create_extractor();
-    ex.set_light_mode(true);
-    //ex.set_num_threads(4);
-    ex.input("data", in);
-    ex.extract("detection_out",out);
+
+    clock_t a = clock();
+    int loopNum = 1;
+    for (int loop = 0; loop < loopNum; loop++) {
+        ncnn::Extractor ex = mobilenet.create_extractor();
+        ex.set_light_mode(true);
+        ex.set_num_threads(4);
+        ex.input("data", in);
+#if mxnet_ssd
+            ex.extract("detection", out);
+#else
+            ex.extract("detection_out", out);
+#endif
+
+    }
+    std::cout << "time: " << (clock() - a) * 1000.0 / CLOCKS_PER_SEC << std::endl;
 
 
     printf("%d %d %d\n", out.w, out.h, out.c);
@@ -82,6 +110,7 @@ static int detect_mobilenet(cv::Mat& raw_img, float show_threshold)
         Object object = objects.at(i);
         if(object.prob > show_threshold)
         {
+            std::cout << i << " " << object.prob << std::endl;
             cv::rectangle(raw_img, object.rec, cv::Scalar(255, 0, 0));
             std::ostringstream pro_str;
             pro_str<<object.prob;
@@ -95,6 +124,10 @@ static int detect_mobilenet(cv::Mat& raw_img, float show_threshold)
                     cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
         }
     }
+#if mxnet_ssd
+    cv::cvtColor(raw_img, raw_img, cv::COLOR_RGB2BGR);
+#endif
+    cv::imwrite("result.jpg", raw_img);
     cv::imshow("result",raw_img);
     cv::waitKey();
 
@@ -106,13 +139,16 @@ int main(int argc, char** argv)
     const char* imagepath = argv[1];
 
     cv::Mat m = cv::imread(imagepath, CV_LOAD_IMAGE_COLOR);
+#if mxnet_ssd
+    cv::cvtColor(m, m, cv::COLOR_BGR2RGB);
+#endif
     if (m.empty())
     {
         fprintf(stderr, "cv::imread %s failed\n", imagepath);
         return -1;
     }
 
-    detect_mobilenet(m,0.5);
+    detect_mobilenet(m,0.2);
 
     return 0;
 }
