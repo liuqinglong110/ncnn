@@ -1280,7 +1280,7 @@ int main(int argc, char** argv)
         } else if (n.op == "_contrib_MultiBoxDetection")
         {
 
-            fprintf(pp, " 0=%d", 21);
+            fprintf(pp, " 0=%d", 2);
             fprintf(pp, " 1=%f", 0.5);
             fprintf(pp, " 2=%d", 100);
             fprintf(pp, " 3=%d", 100);

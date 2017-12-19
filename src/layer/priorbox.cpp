@@ -70,6 +70,8 @@ int PriorBox::forward(const std::vector<Mat>& bottom_blobs, std::vector<Mat>& to
     int num_aspect_ratio = aspect_ratios.w;
 
     int num_prior = num_min_size * num_aspect_ratio + num_min_size + num_max_size;
+    bool is_textboxes = true;
+    num_prior = num_prior * 2;
     if (flip)
         num_prior += num_min_size * num_aspect_ratio;
 
@@ -82,7 +84,8 @@ int PriorBox::forward(const std::vector<Mat>& bottom_blobs, std::vector<Mat>& to
         float* box = top_blob.data + i * w * num_prior * 4;
 
         float center_x = offset * step_w;
-        float center_y = offset * step_h + i * step_h;
+        float center_y = (offset + i) * step_h;
+        float center_y1 = (offset + i + 0.5) * step_h;
 
         for (int j = 0; j < w; j++)
         {
@@ -103,6 +106,13 @@ int PriorBox::forward(const std::vector<Mat>& bottom_blobs, std::vector<Mat>& to
 
                 box += 4;
 
+                box[0] = (center_x - box_w * 0.5f) / image_w;
+                box[1] = (center_y1 - box_h * 0.5f) / image_h;
+                box[2] = (center_x + box_w * 0.5f) / image_w;
+                box[3] = (center_y1 + box_h * 0.5f) / image_h;
+
+                box += 4;
+
                 if (num_max_size > 0)
                 {
                     float max_size = max_sizes.data[k];
@@ -114,6 +124,13 @@ int PriorBox::forward(const std::vector<Mat>& bottom_blobs, std::vector<Mat>& to
                     box[1] = (center_y - box_h * 0.5f) / image_h;
                     box[2] = (center_x + box_w * 0.5f) / image_w;
                     box[3] = (center_y + box_h * 0.5f) / image_h;
+
+                    box += 4;
+
+                    box[0] = (center_x - box_w * 0.5f) / image_w;
+                    box[1] = (center_y1 - box_h * 0.5f) / image_h;
+                    box[2] = (center_x + box_w * 0.5f) / image_w;
+                    box[3] = (center_y1 + box_h * 0.5f) / image_h;
 
                     box += 4;
                 }
@@ -133,12 +150,26 @@ int PriorBox::forward(const std::vector<Mat>& bottom_blobs, std::vector<Mat>& to
 
                     box += 4;
 
+                    box[0] = (center_x - box_w * 0.5f) / image_w;
+                    box[1] = (center_y1 - box_h * 0.5f) / image_h;
+                    box[2] = (center_x + box_w * 0.5f) / image_w;
+                    box[3] = (center_y1 + box_h * 0.5f) / image_h;
+
+                    box += 4;
+
                     if (flip)
                     {
                         box[0] = (center_x - box_h * 0.5f) / image_h;
                         box[1] = (center_y - box_w * 0.5f) / image_w;
                         box[2] = (center_x + box_h * 0.5f) / image_h;
                         box[3] = (center_y + box_w * 0.5f) / image_w;
+
+                        box += 4;
+
+                        box[0] = (center_x - box_w * 0.5f) / image_w;
+                        box[1] = (center_y1 - box_h * 0.5f) / image_h;
+                        box[2] = (center_x + box_w * 0.5f) / image_w;
+                        box[3] = (center_y1 + box_h * 0.5f) / image_h;
 
                         box += 4;
                     }
@@ -171,6 +202,7 @@ int PriorBox::forward(const std::vector<Mat>& bottom_blobs, std::vector<Mat>& to
 
         var += 4;
     }
+    printf("PriorBox: %d %d %d\n", top_blob.w, top_blob.h, top_blob.c);
 
     return 0;
 }

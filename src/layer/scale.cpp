@@ -89,6 +89,10 @@ int Scale::load_model(const unsigned char*& mem)
 
 int Scale::forward_inplace(std::vector<Mat>& bottom_top_blobs) const
 {
+    if (scale_data_size == -233) {
+        printf("do nothing in l2normalize\n");
+        return 0;
+    }
     Mat& bottom_top_blob = bottom_top_blobs[0];
     const Mat& scale_blob = bottom_top_blobs[1];
 
