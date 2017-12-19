@@ -12,48 +12,31 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef LAYER_CONVOLUTION_H
-#define LAYER_CONVOLUTION_H
+#ifndef LAYER_SHUFFLECHANNEL_H
+#define LAYER_SHUFFLECHANNEL_H
 
 #include "layer.h"
 
 namespace ncnn {
 
-class Convolution : public Layer
+class ShuffleChannel : public Layer
 {
 public:
-    Convolution();
-    virtual ~Convolution();
-
-    virtual int load_param(const ParamDict& pd);
-
-#if NCNN_STDIO
-    virtual int load_model(FILE* binfp);
-#endif // NCNN_STDIO
-    virtual int load_model(const unsigned char*& mem);
-
+    ShuffleChannel() {
+        one_blob_only = true;
+        support_inplace = false;
+    }
+    virtual ~ShuffleChannel() { }
+    virtual int load_param(const ParamDict& pd) {
+        group = pd.get(0, 1);
+        return 0;
+    }
     virtual int forward(const Mat& bottom_blob, Mat& top_blob) const;
 
 public:
-    // param
-    int num_output;
-    int kernel_w;
-    int kernel_h;
-    int dilation_w;
-    int dilation_h;
-    int stride_w;
-    int stride_h;
-    int pad_w;
-    int pad_h;
-    int bias_term;
-
-    int weight_data_size;
-
-    // model
-    Mat weight_data;
-    Mat bias_data;
+    int group;
 };
 
 } // namespace ncnn
 
-#endif // LAYER_CONVOLUTION_H
+#endif // LAYER_SHUFFLECHANNEL_H

@@ -35,7 +35,7 @@ int Convolution_arm::load_param(const ParamDict& pd)
 
     use_winograd3x3 = false;
 
-    if (kernel_size == 3 && dilation == 1 && stride == 1)
+    if (kernel_w == 3 && kernel_h == 3 && dilation_w == 1 && dilation_h == 1 && stride_w == 1 && stride_h == 1)
     {
         int num_input = weight_data_size / 9 / num_output;
         // winograd is slow on small channel count
@@ -83,7 +83,15 @@ int Convolution_arm::forward(const Mat& bottom_blob, Mat& top_blob) const
     // convolv with NxN kernel
     // value = value + bias
 
-    if (kernel_size > 7 || stride > 4 || dilation != 1)
+    if (kernel_w != kernel_h || stride_w != stride_h)
+    {
+        return Convolution::forward(bottom_blob, top_blob);
+    }
+
+    const int kernel_size = kernel_w;
+    const int stride = stride_w;
+
+    if (kernel_size > 7 || stride > 4 || dilation_w != 1 || dilation_h != 1)
     {
         return Convolution::forward(bottom_blob, top_blob);
     }
@@ -148,16 +156,16 @@ int Convolution_arm::forward(const Mat& bottom_blob, Mat& top_blob) const
     int channels = bottom_blob.c;
 
     Mat bottom_blob_bordered = bottom_blob;
-    if (pad > 0)
+    if (pad_w > 0 || pad_h > 0)
     {
-        copy_make_border(bottom_blob, bottom_blob_bordered, pad, pad, pad, pad, BORDER_CONSTANT, 0.f);
+        copy_make_border(bottom_blob, bottom_blob_bordered, pad_h, pad_h, pad_w, pad_w, BORDER_CONSTANT, 0.f);
         if (bottom_blob_bordered.empty())
             return -100;
 
         w = bottom_blob_bordered.w;
         h = bottom_blob_bordered.h;
     }
-    else if (pad == -233)
+    else if (pad_w == -233 && pad_h == -233)
     {
         int wpad = kernel_size + (w - 1) / stride * stride - w;
         int hpad = kernel_size + (h - 1) / stride * stride - h;
@@ -179,33 +187,30 @@ int Convolution_arm::forward(const Mat& bottom_blob, Mat& top_blob) const
     if (top_blob.empty())
         return -100;
 
-    if (use_winograd3x3)
+    if (use_winograd3x3 && w <= 80 && h <= 80)
     {
+        int num_threads = get_omp_num_threads();
+        if (num_threads == 1 || (channels >= 64 && num_output >= 64))
+        {
 #if __aarch64__
-        // always faster than the default
-        conv3x3s1_winograd64_neon2(bottom_blob_bordered, top_blob, weight_3x3_winograd64_data, bias_data);
-#else
-        if (w <= 50 && h <= 50)
-        {
-            // another path for small image
+            // always faster than the default
             conv3x3s1_winograd64_neon2(bottom_blob_bordered, top_blob, weight_3x3_winograd64_data, bias_data);
-        }
-        else
-        {
-            // TODO disable multithreading on armv7
-            // conv3x3s1_winograd64_neon is memory bandwidth hungry :|
-            // TODO try to estimate runtime memory speed
-            int num_threads = get_omp_num_threads();
-            if (num_threads == 1 || (w <= 80 && h <= 80))
+#else
+            if (w <= 50 && h <= 50)
             {
-                conv3x3s1_winograd64_neon(bottom_blob_bordered, top_blob, weight_3x3_winograd64_data, bias_data);
+                // another path for small image
+                conv3x3s1_winograd64_neon2(bottom_blob_bordered, top_blob, weight_3x3_winograd64_data, bias_data);
             }
             else
             {
-                conv(bottom_blob_bordered, top_blob, weight_data, bias_data);
+                conv3x3s1_winograd64_neon(bottom_blob_bordered, top_blob, weight_3x3_winograd64_data, bias_data);
             }
-        }
 #endif // __aarch64__
+        }
+        else
+        {
+            conv(bottom_blob_bordered, top_blob, weight_data, bias_data);
+        }
     }
     else
         conv(bottom_blob_bordered, top_blob, weight_data, bias_data);
