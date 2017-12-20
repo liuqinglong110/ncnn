@@ -40,6 +40,7 @@ public:
     float step_width;
     float step_height;
     float offset;
+    int is_textboxes;
 };
 
 } // namespace ncnn

@@ -42,6 +42,7 @@ int PriorBox::load_param(const ParamDict& pd)
     step_width = pd.get(11, -233.f);
     step_height = pd.get(12, -233.f);
     offset = pd.get(13, 0.f);
+    is_textboxes = pd.get(14, 0);
 
     return 0;
 }
@@ -70,8 +71,9 @@ int PriorBox::forward(const std::vector<Mat>& bottom_blobs, std::vector<Mat>& to
     int num_aspect_ratio = aspect_ratios.w;
 
     int num_prior = num_min_size * num_aspect_ratio + num_min_size + num_max_size;
-    bool is_textboxes = true;
-    num_prior = num_prior * 2;
+    if (is_textboxes) {
+        num_prior = num_prior * 2;
+    }
     if (flip)
         num_prior += num_min_size * num_aspect_ratio;
 
@@ -106,12 +108,14 @@ int PriorBox::forward(const std::vector<Mat>& bottom_blobs, std::vector<Mat>& to
 
                 box += 4;
 
-                box[0] = (center_x - box_w * 0.5f) / image_w;
-                box[1] = (center_y1 - box_h * 0.5f) / image_h;
-                box[2] = (center_x + box_w * 0.5f) / image_w;
-                box[3] = (center_y1 + box_h * 0.5f) / image_h;
+                if (is_textboxes) {
+                    box[0] = (center_x - box_w * 0.5f) / image_w;
+                    box[1] = (center_y1 - box_h * 0.5f) / image_h;
+                    box[2] = (center_x + box_w * 0.5f) / image_w;
+                    box[3] = (center_y1 + box_h * 0.5f) / image_h;
 
-                box += 4;
+                    box += 4;
+                }
 
                 if (num_max_size > 0)
                 {
@@ -127,12 +131,14 @@ int PriorBox::forward(const std::vector<Mat>& bottom_blobs, std::vector<Mat>& to
 
                     box += 4;
 
-                    box[0] = (center_x - box_w * 0.5f) / image_w;
-                    box[1] = (center_y1 - box_h * 0.5f) / image_h;
-                    box[2] = (center_x + box_w * 0.5f) / image_w;
-                    box[3] = (center_y1 + box_h * 0.5f) / image_h;
+                    if (is_textboxes) {
+                        box[0] = (center_x - box_w * 0.5f) / image_w;
+                        box[1] = (center_y1 - box_h * 0.5f) / image_h;
+                        box[2] = (center_x + box_w * 0.5f) / image_w;
+                        box[3] = (center_y1 + box_h * 0.5f) / image_h;
 
-                    box += 4;
+                        box += 4;
+                    }
                 }
 
                 // all aspect_ratios
@@ -150,12 +156,14 @@ int PriorBox::forward(const std::vector<Mat>& bottom_blobs, std::vector<Mat>& to
 
                     box += 4;
 
-                    box[0] = (center_x - box_w * 0.5f) / image_w;
-                    box[1] = (center_y1 - box_h * 0.5f) / image_h;
-                    box[2] = (center_x + box_w * 0.5f) / image_w;
-                    box[3] = (center_y1 + box_h * 0.5f) / image_h;
+                    if (is_textboxes) {
+                        box[0] = (center_x - box_w * 0.5f) / image_w;
+                        box[1] = (center_y1 - box_h * 0.5f) / image_h;
+                        box[2] = (center_x + box_w * 0.5f) / image_w;
+                        box[3] = (center_y1 + box_h * 0.5f) / image_h;
 
-                    box += 4;
+                        box += 4;
+                    }
 
                     if (flip)
                     {
@@ -166,12 +174,14 @@ int PriorBox::forward(const std::vector<Mat>& bottom_blobs, std::vector<Mat>& to
 
                         box += 4;
 
-                        box[0] = (center_x - box_w * 0.5f) / image_w;
-                        box[1] = (center_y1 - box_h * 0.5f) / image_h;
-                        box[2] = (center_x + box_w * 0.5f) / image_w;
-                        box[3] = (center_y1 + box_h * 0.5f) / image_h;
+                        if (is_textboxes) {
+                            box[0] = (center_x - box_w * 0.5f) / image_w;
+                            box[1] = (center_y1 - box_h * 0.5f) / image_h;
+                            box[2] = (center_x + box_w * 0.5f) / image_w;
+                            box[3] = (center_y1 + box_h * 0.5f) / image_h;
 
-                        box += 4;
+                            box += 4;
+                        }
                     }
                 }
             }

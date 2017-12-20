@@ -611,6 +611,12 @@ int main(int argc, char** argv)
     const char* ncnn_prototxt = argc >= 5 ? argv[3] : "ncnn.proto";
     const char* ncnn_modelbin = argc >= 5 ? argv[4] : "ncnn.bin";
 
+    int is_textboxes = 1;
+    int num_classes = 21;
+    if (is_textboxes) {
+        num_classes = 2;
+    }
+
     std::vector<MXNetNode> nodes;
     std::vector<MXNetParam> params;
 
@@ -1280,10 +1286,10 @@ int main(int argc, char** argv)
             fprintf(pp, " 12=%f", step_height);
             float offset = 0.5;
             fprintf(pp, " 13=%f", offset);
+            fprintf(pp, " 14=%d", is_textboxes);
         } else if (n.op == "_contrib_MultiBoxDetection")
         {
-
-            fprintf(pp, " 0=%d", 2);
+            fprintf(pp, " 0=%d", num_classes);
             fprintf(pp, " 1=%f", 0.5);
             fprintf(pp, " 2=%d", 100);
             fprintf(pp, " 3=%d", 100);
