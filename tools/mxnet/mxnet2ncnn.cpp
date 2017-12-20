@@ -804,7 +804,7 @@ int main(int argc, char** argv)
         else if (n.op == "Convolution")
         {
             int num_group = n.attr("num_group");
-            if (num_group > 0) {
+            if (num_group > 1) {
                 fprintf(pp, "%-16s", "ConvolutionDepthWise");
             } else {
                 fprintf(pp, "%-16s", "Convolution");
@@ -1021,14 +1021,16 @@ int main(int argc, char** argv)
 
             fprintf(pp, " 5=%d", no_bias == 1 ? 0 : 1);
             fprintf(pp, " 6=%d", (int)weight_data.size());
-            if (num_group > 0) {
+            if (num_group > 1) {
                 fprintf(pp, " 7=%d", num_group);
             }
 
             int quantize_tag = 0;
             fwrite(&quantize_tag, sizeof(int), 1, bp);
             fwrite(weight_data.data(), sizeof(float), weight_data.size(), bp);
-            fwrite(bias_data.data(), sizeof(float), bias_data.size(), bp);
+            if (no_bias != 1) {
+                fwrite(bias_data.data(), sizeof(float), bias_data.size(), bp);
+            }
         }
         else if (n.op == "Dropout")
         {
