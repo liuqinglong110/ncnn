@@ -949,6 +949,11 @@ int main(int argc, char** argv)
             }
 
             std::vector<float> slope_data = n.weight(0);
+            if (fabs(slope_data[0]) < 1e-7) { //gamma
+                for (int k = 0; k < slope_data.size(); k++) {
+                    slope_data[k] = 1.0;
+                }
+            }
             std::vector<float> bias_data = n.weight(1);
 
             int channels = slope_data.size();
