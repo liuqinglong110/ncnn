@@ -23,8 +23,8 @@
 static int detect_squeezenet(const cv::Mat& bgr, std::vector<float>& cls_scores)
 {
     ncnn::Net squeezenet;
-    squeezenet.load_param("squeezenet_v1.1.param");
-    squeezenet.load_model("squeezenet_v1.1.bin");
+    squeezenet.load_param("mx_squeeze.proto");
+    squeezenet.load_model("mx_squeeze.bin");
 
     ncnn::Mat in = ncnn::Mat::from_pixels_resize(bgr.data, ncnn::Mat::PIXEL_BGR, bgr.cols, bgr.rows, 227, 227);
 
@@ -38,6 +38,9 @@ static int detect_squeezenet(const cv::Mat& bgr, std::vector<float>& cls_scores)
 
     ncnn::Mat out;
     ex.extract("prob", out);
+
+    //for mxnet
+    out = out.reshape(1,1,1000);
 
     cls_scores.resize(out.c);
     for (int j=0; j<out.c; j++)

@@ -1221,7 +1221,8 @@ int main(int argc, char** argv)
             fprintf(pp, " 1=%d", 0);
             //todo: mxnet normalize eps is 1e-10
             fprintf(pp, " 2=%f", 1e-6);
-            int channels = 512;
+            //todo: read normlize channel from json config
+            int channels = 256;
             fprintf(pp, " 3=%d", channels);
             std::vector<float> scale_data(channels);
             for (int t = 0; t < scale_data.size(); t++) {
@@ -1229,7 +1230,7 @@ int main(int argc, char** argv)
             }
             fwrite(scale_data.data(), sizeof(float), scale_data.size(), bp);
         } else if (n.op == "broadcast_mul") {
-            int channels = 512;
+            int channels = 256;
             std::vector<float> scale_data(channels);
             for (int t = 0; t < scale_data.size(); t++) {
                 scale_data[t] = 20;
