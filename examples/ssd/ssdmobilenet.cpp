@@ -22,7 +22,7 @@
 
 #include "net.h"
 
-#define mxnet_ssd false
+#define mxnet_ssd true
 
 struct Object{
     cv::Rect rec;
@@ -48,11 +48,16 @@ static int detect_mobilenet(cv::Mat& raw_img, float show_threshold)
     int img_w = raw_img.size().width;
 
 #if mxnet_ssd
-        mobilenet.load_param("ncnn_nobn.proto");
-        mobilenet.load_model("ncnn_nobn.bin");
+        mobilenet.load_param("ncnn.proto");
+        mobilenet.load_model("ncnn.bin");
+//    mobilenet.load_param("vgg_textboxes.proto");
+//    mobilenet.load_model("vgg_textboxes.bin");
 #else
-        mobilenet.load_param("mobilenet_ssd_voc_ncnn.param");
-        mobilenet.load_model("mobilenet_ssd_voc_ncnn.bin");
+    mobilenet.load_param("TextBoxes.proto");
+
+    mobilenet.load_model("TextBoxes.bin");
+//        mobilenet.load_param("mobilenet_ssd_voc_ncnn.param");
+//        mobilenet.load_model("mobilenet_ssd_voc_ncnn.bin");
 #endif
 
 //    mobilenet.load_param("ncnn.proto");

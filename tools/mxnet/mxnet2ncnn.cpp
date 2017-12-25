@@ -560,10 +560,29 @@ static bool read_mxnet_param(const char* parampath, std::vector<MXNetParam>& par
         if (shape.size() == 3) len = shape[0] * shape[1] * shape[2];
         if (shape.size() == 4) len = shape[0] * shape[1] * shape[2] * shape[3];
 
+
+
         MXNetParam p;
 
         p.data.resize(len);
         fread(&p.data[0], 1, len * sizeof(float), fp);
+
+        //if (i == data_count -1) {
+            printf("shape%d: ", i);
+            for (int ii = 0; ii < shape.size(); ii++) {
+                printf("%d ", shape[ii]);
+
+            }
+            printf("\n");
+
+            for (int ii = 0; ii < len; ii++) {
+                printf("%.3f ", p.data[ii]);
+                if (ii > 10) {
+                    break;
+                }
+            }
+            printf("\n");
+        //}
 
         params.push_back(p);
 
@@ -606,8 +625,17 @@ static bool read_mxnet_param(const char* parampath, std::vector<MXNetParam>& par
 
 int main(int argc, char** argv)
 {
-    const char* jsonpath = argv[1];
-    const char* parampath = argv[2];
+
+//    const char* jsonpath = argc  >= 2 ? argv[1] : "mobilenet_ssd-symbol.json";
+//    const char* parampath = argc >= 2? argv[2]: "mobilenet_ssd-0018.params";
+//    const char* jsonpath = argc  >= 2 ? argv[1] : "mobile_textboxes.json";
+//    const char* parampath = argc >= 2? argv[2]: "mobile_textboxes.params";
+//    const char* jsonpath = argc  >= 2 ? argv[1] : "mobile_text.json";
+//    const char* parampath = argc >= 2? argv[2]: "mobile_text.params";
+    const char* jsonpath = argc  >= 2 ? argv[1] : "mobile_text6.json";
+    const char* parampath = argc >= 2? argv[2]: "mobile_text6.params";
+//    const char* jsonpath = argc  >= 2 ? argv[1] : "mergebn-symbol.json";
+//    const char* parampath = argc >= 2? argv[2]: "mergebn-0000.params";
     const char* ncnn_prototxt = argc >= 5 ? argv[3] : "ncnn.proto";
     const char* ncnn_modelbin = argc >= 5 ? argv[4] : "ncnn.bin";
 
