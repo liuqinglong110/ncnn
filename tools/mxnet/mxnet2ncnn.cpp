@@ -893,6 +893,9 @@ int main(int argc, char** argv)
             fprintf(pp, "%-16s", "PriorBox");
         } else if (n.op == "_contrib_MultiBoxDetection") {
             fprintf(pp, "%-16s", "DetectionOutput");
+        } else if (n.op == "elemwise_mul" || n.op == "elemwise_sub") {
+            fprintf(pp, "%-16s", "BinaryOp");
+        }
         }
         else
         {
@@ -1330,6 +1333,13 @@ int main(int argc, char** argv)
             fprintf(pp, " 2=%d", 100);
             fprintf(pp, " 3=%d", 100);
             fprintf(pp, " 4=%f", 0.5);
+        } else if (n.op == "elemwise_mul") {
+            int op_type = 2;
+            fprintf(pp, " 0=%d", op_type);
+        } else if (n.op == "elemwise_sub") {
+            int op_type = 1;
+            fprintf(pp, " 0=%d", op_type);
+        }
         }
         else
         {
