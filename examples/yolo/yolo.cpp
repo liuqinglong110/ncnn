@@ -45,8 +45,6 @@ const char* class_names[] = {"background",
 static int detect_yolo(cv::Mat& raw_img, float show_threshold)
 {
     ncnn::Net yolo;
-    int img_h = raw_img.size().height;
-    int img_w = raw_img.size().width;
     yolo.load_param("yolo.proto");
     yolo.load_model("yolo.bin");
     int input_size = 416;
@@ -65,15 +63,18 @@ static int detect_yolo(cv::Mat& raw_img, float show_threshold)
     ex.set_num_threads(4);
     ex.input(0, in);
     ex.extract("layer27-conv", out);
-    int outsize=13;
-    int cell_dim = 35;
+    int w = out.w;
+    int h = out.h;
+    int c = out.c;
+
     int class_num = 2;
-    ncnn::Mat out1(out.reshape(outsize*outsize*cell_dim));
+    out = out.reshape(out.w * out.h * out.c);
 
-    int iw=width,ih=height,nw=input_size,nh=input_size,w=outsize,h=outsize,c=cell_dim,num=5,classes=class_num;
+    int anchor_num=5;
+    float nms_thresh = 0.45;
+    float conf_thesh = show_threshold;
 
-    //float biases[10]={0.738768,0.874946,  2.42204,2.65704,  4.30971,7.04493,  10.246,4.59428,  12.6868,11.8741};
-    std::vector<float> detectOut = region_forward(out1.data,iw,ih,nw,nh,w,h,c,classes,4,num,0.45, 0.5);
+    std::vector<float> detectOut = region_forward(out.data,w,h,c,class_num,4,anchor_num, nms_thresh, conf_thesh);
 
     int object_offset = 6;
     int obj_num = detectOut.size() / object_offset;

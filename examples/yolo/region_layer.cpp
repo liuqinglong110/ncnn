@@ -139,7 +139,7 @@ void free_ptrs(void **ptrs, int n)
     free(ptrs);
 }
 
-std::vector<float> region_forward(float * input,int iw,int ih,int nw,int nh,int w,int h,int c,int classes,int coords,int num,float nms_thresh, float conf_thresh){
+std::vector<float> region_forward(float * input,int w,int h,int c,int classes,int coords,int num,float nms_thresh, float conf_thresh){
     float *output;
     float biases[10]={0.57273, 0.677385, 1.87446, 2.06253, 3.33843, 5.47434, 7.88282, 3.52778, 9.77052, 9.16828};
 
@@ -150,9 +150,9 @@ std::vector<float> region_forward(float * input,int iw,int ih,int nw,int nh,int 
     box *boxes = (box*)malloc(sizeof(box)*w*h*num);//calloc(w*h*num, sizeof(box));
     float **probs = (float**)malloc(sizeof(float*)*w*h*num);//calloc(w*h*num, sizeof(float *));
     for(int j = 0; j < w*h*num; ++j) probs[j] = (float*)malloc(sizeof(float)*(classes+1));//calloc(classes + 1, sizeof(float *));
-    get_region_boxes(conf_thresh,probs,boxes,0,w,h,c,classes,coords,num,biases,output); //do something for letterbox
-    //todo: if not letter box, not need to correct
-    correct_region_boxes(boxes, w*h*num, iw, ih, nw, nh, 1);
+    get_region_boxes(conf_thresh,probs,boxes,0,w,h,c,classes,coords,num,biases,output);
+    //if you want to correct letter box, do this outside
+    //correct_region_boxes(boxes, w*h*num, iw, ih, nw, nh, 1);
     if (nms_thresh)
         do_nms_obj(boxes, probs, w*h*num,classes, nms_thresh);
 
