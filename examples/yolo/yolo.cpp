@@ -41,12 +41,6 @@ const char* class_names[] = {"background",
                              "motorbike", "person", "pottedplant",
                              "sheep", "sofa", "train", "tvmonitor"};
 
-void free_ptrs(void **ptrs, int n)
-{
-    int i;
-    for(i = 0; i < n; ++i) free(ptrs[i]);
-    free(ptrs);
-}
 
 static int detect_yolo(cv::Mat& raw_img, float show_threshold)
 {
@@ -77,41 +71,25 @@ static int detect_yolo(cv::Mat& raw_img, float show_threshold)
     ncnn::Mat out1(out.reshape(outsize*outsize*cell_dim));
 
     int iw=width,ih=height,nw=input_size,nh=input_size,w=outsize,h=outsize,c=cell_dim,num=5,classes=class_num;
-    box *boxes = (box*)malloc(sizeof(box)*w*h*num);//calloc(w*h*num, sizeof(box));
-    float **probs = (float**)malloc(sizeof(float*)*w*h*num);//calloc(w*h*num, sizeof(float *));
-    for(int j = 0; j < w*h*num; ++j) probs[j] = (float*)malloc(sizeof(float)*(classes+1));//calloc(classes + 1, sizeof(float *));
-    float biases[10]={0.57273, 0.677385, 1.87446, 2.06253, 3.33843, 5.47434, 7.88282, 3.52778, 9.77052, 9.16828};
+
     //float biases[10]={0.738768,0.874946,  2.42204,2.65704,  4.30971,7.04493,  10.246,4.59428,  12.6868,11.8741};
-    region_forward(out1.data,iw,ih,nw,nh,w,h,c,classes,4,num,0.1,boxes,probs,biases);
+    std::vector<float> detectOut = region_forward(out1.data,iw,ih,nw,nh,w,h,c,classes,4,num,0.45, 0.5);
 
-    for(int i = 0;i<w*h*num;i++)
-    {
-        float max_prob = 0;
-        int class_index = 0;
-        for (int j = 0; j < class_num; j++) {
-            if (probs[i][j] > max_prob) {
-                max_prob = probs[i][j];
-                class_index = j;
-            }
-        }
-        if (max_prob < show_threshold) {
-            continue;
-        }
-        std::cout << "max_prob: " << max_prob << std::endl;
-
-        cv::Rect rect;
-        box b = boxes[i];
-        rect.x = (b.x - b.w/2) * width;
-        rect.y = (b.y - b.h/2) * height;
-        rect.width = b.w * width;
-        rect.height = b.h * height;
-        cv::rectangle(raw_img, rect, cv::Scalar(255, 255, 0));
+    int object_offset = 6;
+    int obj_num = detectOut.size() / object_offset;
+    for (int i = 0; i < obj_num; i++) {
+        int offset = i * object_offset;
+        int id = detectOut[offset];
+        float conf = detectOut[offset+1];
+        int left = detectOut[offset+2] * width;
+        int top = detectOut[offset+3] * height;
+        int right = detectOut[offset+4] * width;
+        int bottom = detectOut[offset+5] * height;
+        cv::rectangle(raw_img, cv::Point(left, top), cv::Point(right, bottom), cv::Scalar(255, 0, 0));
     }
 
-    std::cout << "done" << std::endl;
 
-    free(boxes);
-    free_ptrs((void **)probs, w*h*num);
+    std::cout << "done" << std::endl;
 
     cv::imshow("result",raw_img);
     cv::waitKey();

@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <math.h>
 #include <cstring>
+#include <vector>
+#include <iostream>
 static inline float logistic_activate(float x){return 1./(1. + exp(-x));}
 
 
@@ -147,25 +149,61 @@ void get_region_boxes(int iw, int ih, int netw, int neth, float thresh, float **
 
         }
     }
+    //todo: if not letter box, not need to correct
     correct_region_boxes(boxes, w*h*num, iw, ih, netw, neth, 1);
 }
 
 
-void region_forward(float * input,int iw,int ih,int nw,int nh,int w,int h,int c,int classes,int coords,int num,float nms,box *boxes, float **probs,float *biases){
+
+void free_ptrs(void **ptrs, int n)
+{
+    int i;
+    for(i = 0; i < n; ++i) free(ptrs[i]);
+    free(ptrs);
+}
+
+std::vector<float> region_forward(float * input,int iw,int ih,int nw,int nh,int w,int h,int c,int classes,int coords,int num,float nms_thresh, float conf_thresh){
     float *output;
-    //float biases[10]={0.57273, 0.677385, 1.87446, 2.06253, 3.33843, 5.47434, 7.88282, 3.52778, 9.77052, 9.16828};
+    float biases[10]={0.57273, 0.677385, 1.87446, 2.06253, 3.33843, 5.47434, 7.88282, 3.52778, 9.77052, 9.16828};
 
     output = (float*)calloc(w*h*c,sizeof(float));
 
     memcpy(output,input,w*h*c*sizeof(float));
     forward_act(input,output,w,h,c,classes,coords,num);
-    //box *boxes = (box*)malloc(sizeof(box)*w*h*num);//calloc(w*h*num, sizeof(box));
-    //float **probs = (float**)malloc(sizeof(float*)*w*h*num);//calloc(w*h*num, sizeof(float *));
-    //for(int j = 0; j < w*h*num; ++j) probs[j] = (float*)malloc(sizeof(float)*(classes+1));//calloc(classes + 1, sizeof(float *));
-    get_region_boxes(iw,ih,nw,nh,0.2,probs,boxes,0,w,h,c,classes,coords,num,biases,output);
-    if (nms)
-        do_nms_obj(boxes, probs, w*h*num,classes, nms);
-    //free(boxes);
-    //free(probs);
+    box *boxes = (box*)malloc(sizeof(box)*w*h*num);//calloc(w*h*num, sizeof(box));
+    float **probs = (float**)malloc(sizeof(float*)*w*h*num);//calloc(w*h*num, sizeof(float *));
+    for(int j = 0; j < w*h*num; ++j) probs[j] = (float*)malloc(sizeof(float)*(classes+1));//calloc(classes + 1, sizeof(float *));
+    get_region_boxes(iw,ih,nw,nh,conf_thresh,probs,boxes,0,w,h,c,classes,coords,num,biases,output); //do something for letterbox
+    if (nms_thresh)
+        do_nms_obj(boxes, probs, w*h*num,classes, nms_thresh);
+
+    std::vector<float> detectionOut;
+
+    for(int i = 0;i<w*h*num;i++)
+    {
+        float max_prob = 0;
+        int class_index = 0;
+        for (int j = 0; j < classes; j++) {
+            if (probs[i][j] > max_prob) {
+                max_prob = probs[i][j];
+                class_index = j;
+            }
+        }
+        if (max_prob < conf_thresh) {
+            continue;
+        }
+        std::cout << "max_prob: " << max_prob << std::endl;
+        box b = boxes[i];
+        detectionOut.push_back(class_index);
+        detectionOut.push_back(max_prob);
+        detectionOut.push_back(b.x - b.w/2);
+        detectionOut.push_back(b.y - b.h/2);
+        detectionOut.push_back(b.x + b.w/2);
+        detectionOut.push_back(b.y + b.h/2);
+    }
+
+    free(boxes);
+    free_ptrs((void **)probs, w*h*num);
     free(output);
+    return detectionOut;
 }
