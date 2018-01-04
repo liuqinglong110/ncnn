@@ -18,7 +18,7 @@ cmake_minimum_required(VERSION 2.8.10)
 
 # set(CMAKE_BUILD_TYPE debug)
 # set(CMAKE_BUILD_TYPE relwithdebinfo)
-set(CMAKE_BUILD_TYPE release)
+#set(CMAKE_BUILD_TYPE release)
 
 option(NCNN_OPENMP "openmp support" ON)
 option(NCNN_STDIO "load model from external file" ON)
@@ -36,10 +36,23 @@ endif()
 add_definitions(-Wall -Wextra -Wno-unused-function)
 
 add_definitions(-fPIC)
-add_definitions(-Ofast)
+#add_definitions(-Ofast)
 
-add_definitions(-ffast-math)
 # add_definitions(-march=native)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    message("cppmary build: Debug")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -g")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -std=c++11")
+elseif(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+    message("cppmary build: RelwithDebInfo")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -g")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -std=c++11")
+else()
+    message("cppmary build: Release")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -std=c++11")
+    add_definitions(-ffast-math)
+endif()
 
 # add_definitions(-flto)
 
@@ -57,7 +70,7 @@ endif()
 
 ##############################################
 
-# add_subdirectory(examples)
+add_subdirectory(examples)
 add_subdirectory(src)
 if(NOT ANDROID AND NOT IOS)
 add_subdirectory(tools)

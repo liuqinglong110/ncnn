@@ -14,3 +14,4 @@ add_executable(fasterrcnn fasterrcnn.cpp)
 target_link_libraries(fasterrcnn ncnn ${OpenCV_LIBS})
 
 add_subdirectory(ssd)
+add_subdirectory(yolo)
