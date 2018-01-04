@@ -25,7 +25,6 @@
 #include <iostream>
 
 #include "net.h"
-#include "image.h"
 #include "box.h"
 #include "region_layer.h"
 

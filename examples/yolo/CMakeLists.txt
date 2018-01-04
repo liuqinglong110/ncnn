@@ -7,5 +7,5 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR}/../../src)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
-add_executable(yolo yolo.cpp image.c box.cpp region_layer.cpp)
+add_executable(yolo yolo.cpp box.cpp region_layer.cpp)
 target_link_libraries(yolo ncnn ${OpenCV_LIBS})
