@@ -25,7 +25,6 @@
 #include <iostream>
 
 #include "net.h"
-#include "box.h"
 #include "region_layer.h"
 
 struct Object{
@@ -74,7 +73,8 @@ static int detect_yolo(cv::Mat& raw_img, float show_threshold)
     float nms_thresh = 0.45;
     float conf_thesh = show_threshold;
 
-    std::vector<float> detectOut = region_forward(out.data,w,h,c,class_num,4,anchor_num, nms_thresh, conf_thesh);
+    float biases[10]={0.57273, 0.677385, 1.87446, 2.06253, 3.33843, 5.47434, 7.88282, 3.52778, 9.77052, 9.16828};
+    std::vector<float> detectOut = region_forward(out.data,w,h,c,class_num,4,anchor_num, biases, nms_thresh, conf_thesh);
 
     int object_offset = 6;
     int obj_num = detectOut.size() / object_offset;
@@ -88,7 +88,6 @@ static int detect_yolo(cv::Mat& raw_img, float show_threshold)
         int bottom = detectOut[offset+5] * height;
         cv::rectangle(raw_img, cv::Point(left, top), cv::Point(right, bottom), cv::Scalar(255, 0, 0));
     }
-
 
     std::cout << "done" << std::endl;
 
