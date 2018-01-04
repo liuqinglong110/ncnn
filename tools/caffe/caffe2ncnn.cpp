@@ -204,6 +204,17 @@ static bool read_proto_from_binary(const char* filepath, google::protobuf::Messa
     return success;
 }
 
+static std::vector<std::string> split(const std::string &text, char sep) {
+    std::vector<std::string> tokens;
+    std::size_t start = 0, end = 0;
+    while ((end = text.find(sep, start)) != std::string::npos) {
+        tokens.push_back(text.substr(start, end - start));
+        start = end + 1;
+    }
+    tokens.push_back(text.substr(start));
+    return tokens;
+}
+
 int main(int argc, char** argv)
 {
     if (!(argc == 3 || argc == 5 || argc == 6))
@@ -1065,6 +1076,20 @@ int main(int argc, char** argv)
             const caffe::ShuffleChannelParameter&
                     shuffle_channel_param = layer.shuffle_channel_param();
             fprintf(pp, " 0=%d", shuffle_channel_param.group());
+        } else if (layer.type() == "Region") {
+            const caffe::RegionParameter& region_param = layer.region_param();
+            std::string anchors_str = region_param.anchors();
+            std::vector<std::string> anchors_vec = split(anchors_str, ',');
+            std::vector<float> anchors;
+            for (int j = 0; j < anchors_vec.size(); j++) {
+                anchors.push_back(std::stod(anchors_vec[j]));
+            }
+            fprintf(pp, " -23300=%d", anchors.size());
+            for (int j=0; j < anchors.size(); j++)
+            {
+                fprintf(pp, ",%f", anchors[j]);
+            }
+            fprintf(pp, " 1=%d", region_param.classes());
         }
         else if (layer.type() == "Slice")
         {

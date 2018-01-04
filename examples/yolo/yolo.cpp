@@ -25,7 +25,6 @@
 #include <iostream>
 
 #include "net.h"
-#include "region_layer.h"
 
 struct Object{
     cv::Rect rec;
@@ -61,36 +60,41 @@ static int detect_yolo(cv::Mat& raw_img, float show_threshold)
     ex.set_light_mode(true);
     ex.set_num_threads(4);
     ex.input(0, in);
-    ex.extract("layer27-conv", out);
-    int w = out.w;
-    int h = out.h;
-    int c = out.c;
+    ex.extract("layer28-region", out);
 
-    int class_num = 2;
-    out = out.reshape(out.w * out.h * out.c);
-
-    int anchor_num=5;
-    float nms_thresh = 0.45;
-    float conf_thesh = show_threshold;
-
-    float biases[10]={0.57273, 0.677385, 1.87446, 2.06253, 3.33843, 5.47434, 7.88282, 3.52778, 9.77052, 9.16828};
-    std::vector<float> detectOut = region_forward(out.data,w,h,c,class_num,4,anchor_num, biases, nms_thresh, conf_thesh);
-
-    int object_offset = 6;
-    int obj_num = detectOut.size() / object_offset;
-    for (int i = 0; i < obj_num; i++) {
-        int offset = i * object_offset;
-        int id = detectOut[offset];
-        float conf = detectOut[offset+1];
-        int left = detectOut[offset+2] * width;
-        int top = detectOut[offset+3] * height;
-        int right = detectOut[offset+4] * width;
-        int bottom = detectOut[offset+5] * height;
-        cv::rectangle(raw_img, cv::Point(left, top), cv::Point(right, bottom), cv::Scalar(255, 0, 0));
+    printf("%d %d %d\n", out.w, out.h, out.c);
+    std::vector<Object> objects;
+    for (int iw=0;iw<out.h;iw++)
+    {
+        Object object;
+        const float *values = out.row(iw);
+        object.class_id = values[0];
+        object.prob = values[1];
+        object.rec.x = values[2] * width;
+        object.rec.y = values[3] * height;
+        object.rec.width = values[4] * width - object.rec.x;
+        object.rec.height = values[5] * height - object.rec.y;
+        objects.push_back(object);
     }
 
-    std::cout << "done" << std::endl;
-
+    for(int i = 0;i<objects.size();++i)
+    {
+        Object object = objects.at(i);
+        if(object.prob > show_threshold)
+        {
+            cv::rectangle(raw_img, object.rec, cv::Scalar(255, 0, 0));
+            std::ostringstream pro_str;
+            pro_str<<object.prob;
+            std::string label = std::string(class_names[object.class_id]) + ": " + pro_str.str();
+            int baseLine = 0;
+            cv::Size label_size = cv::getTextSize(label, cv::FONT_HERSHEY_SIMPLEX, 0.5, 1, &baseLine);
+            cv::rectangle(raw_img, cv::Rect(cv::Point(object.rec.x, object.rec.y- label_size.height),
+                                            cv::Size(label_size.width, label_size.height + baseLine)),
+                          cv::Scalar(255, 255, 255), CV_FILLED);
+            cv::putText(raw_img, label, cv::Point(object.rec.x, object.rec.y),
+                        cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
+        }
+    }
     cv::imshow("result",raw_img);
     cv::waitKey();
 
@@ -108,7 +112,7 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    detect_yolo(m,0.45);
+    detect_yolo(m,0.5);
 
     return 0;
 }
