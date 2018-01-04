@@ -6,7 +6,6 @@
 #include <iostream>
 static inline float logistic_activate(float x){return 1./(1. + exp(-x));}
 
-
 void activate_array(float *x, const int n)
 {
     int i;
@@ -14,7 +13,6 @@ void activate_array(float *x, const int n)
         x[i] = logistic_activate(x[i]);
     }
 }
-
 
 int entry_index(int location, int entry,int w,int h,int coords,int classes)
 {
@@ -98,15 +96,10 @@ void correct_region_boxes(box *boxes, int n, int w, int h, int netw, int neth, i
         b.w *= (float)netw/new_w;
         b.h *= (float)neth/new_h;
 
-            //b.x *= w;
-           // b.w *= w;
-            //b.y *= h;
-            //b.h *= h;
-
         boxes[i] = b;
     }
 }
-void get_region_boxes(int iw, int ih, int netw, int neth, float thresh, float **probs, box *boxes,int relative,int w,int h,int c,int classes,int coords,int num,float *biases,float *output)
+void get_region_boxes(float thresh, float **probs, box *boxes,int relative,int w,int h,int c,int classes,int coords,int num,float *biases,float *output)
 {
 
     int i,j,n;
@@ -125,32 +118,16 @@ void get_region_boxes(int iw, int ih, int netw, int neth, float thresh, float **
             float scale = predictions[obj_index];
             boxes[index] = get_region_box(predictions, biases, n, box_index, col, row, w, h, w*h);
 
-            //int class_index = entry_index(n*w*h + i, coords + 1,w,h,coords,classes);
-
             float max = 0;
             for(j = 0; j < classes; ++j){
                 int class_index = entry_index(n*w*h + i, coords + 1 + j,w,h,coords,classes);
                 float prob = scale*predictions[class_index];
                 probs[index][j] = (prob > thresh) ? prob : 0;
                 if(prob > max) max = prob;
-                // TODO REMOVE
-                // if (j == 56 ) probs[index][j] = 0;
-                /*
-                   if (j != 0) probs[index][j] = 0;
-                   int blacklist[] = {121, 497, 482, 504, 122, 518,481, 418, 542, 491, 914, 478, 120, 510,500};
-                   int bb;
-                   for (bb = 0; bb < sizeof(blacklist)/sizeof(int); ++bb){
-                   if(index == blacklist[bb]) probs[index][j] = 0;
-                   }
-                 */
             }
             probs[index][classes] = max;
-
-
         }
     }
-    //todo: if not letter box, not need to correct
-    correct_region_boxes(boxes, w*h*num, iw, ih, netw, neth, 1);
 }
 
 
@@ -173,7 +150,9 @@ std::vector<float> region_forward(float * input,int iw,int ih,int nw,int nh,int 
     box *boxes = (box*)malloc(sizeof(box)*w*h*num);//calloc(w*h*num, sizeof(box));
     float **probs = (float**)malloc(sizeof(float*)*w*h*num);//calloc(w*h*num, sizeof(float *));
     for(int j = 0; j < w*h*num; ++j) probs[j] = (float*)malloc(sizeof(float)*(classes+1));//calloc(classes + 1, sizeof(float *));
-    get_region_boxes(iw,ih,nw,nh,conf_thresh,probs,boxes,0,w,h,c,classes,coords,num,biases,output); //do something for letterbox
+    get_region_boxes(conf_thresh,probs,boxes,0,w,h,c,classes,coords,num,biases,output); //do something for letterbox
+    //todo: if not letter box, not need to correct
+    correct_region_boxes(boxes, w*h*num, iw, ih, nw, nh, 1);
     if (nms_thresh)
         do_nms_obj(boxes, probs, w*h*num,classes, nms_thresh);
 
