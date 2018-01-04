@@ -59,29 +59,18 @@ static int detect_yolo(cv::Mat& raw_img, float show_threshold)
     int input_size = 416;
     int width = raw_img.cols;
     int height = raw_img.rows;
-    ncnn::Mat in = ncnn::Mat::from_pixels(raw_img.data, ncnn::Mat::PIXEL_BGR, raw_img.cols, raw_img.rows);
+    ncnn::Mat in = ncnn::Mat::from_pixels_resize(raw_img.data, ncnn::Mat::PIXEL_BGR, raw_img.cols, raw_img.rows, input_size, input_size);
 
     const float mean_vals[3] = {0, 0, 0};
     const float norm_vals[3] = {1.0/256,1.0/256,1.0/256};
     in.substract_mean_normalize(mean_vals, norm_vals);
 
-    image im;
-
-    im.data = in.data;
-    im.w = width;
-    im.h = height;
-    im.c=3;
-    image sized = letterbox_image(im, input_size, input_size);
-
-
-    ncnn::Mat inresize(input_size,input_size,3,sized.data);
-    //
     ncnn::Mat out;
 
     ncnn::Extractor ex=yolo.create_extractor();
     ex.set_light_mode(true);
     ex.set_num_threads(4);
-    ex.input(0, inresize);
+    ex.input(0, in);
     ex.extract("layer27-conv", out);
     int outsize=13;
     int cell_dim = 35;
@@ -122,7 +111,6 @@ static int detect_yolo(cv::Mat& raw_img, float show_threshold)
 
     std::cout << "done" << std::endl;
 
-    free_image(sized);
     free(boxes);
     free_ptrs((void **)probs, w*h*num);
 
