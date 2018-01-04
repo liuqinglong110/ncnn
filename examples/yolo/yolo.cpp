@@ -25,6 +25,7 @@
 #include <iostream>
 
 #include "net.h"
+#include <fstream>
 
 struct Object{
     cv::Rect rec;
@@ -39,12 +40,40 @@ const char* class_names[] = {"background",
                              "motorbike", "person", "pottedplant",
                              "sheep", "sofa", "train", "tvmonitor"};
 
+std::string getFileString(const std::string& filepath) {
+    std::ifstream is(filepath);
+    std::string filebuffer="";
+    if (is.is_open()) {
+        // get length of file:
+        is.seekg (0, is.end);
+        long long length = is.tellg();
+        is.seekg (0, is.beg);
+        char * buffer = new char [length];
+        std::cout << "Reading " << filepath << " " << length << " characters... ";
+        // read data as a block:
+        is.read (buffer,length);
+        if (is)
+            std::cout << "all characters read successfully." << std::endl;
+        else
+            std::cout << "error: only " << is.gcount() << " could be read";
+        is.close();
+        // ...buffer contains the entire file...
+        filebuffer = std::string(buffer,length);
+        delete[] buffer;
+    } else {
+        std::cout << filepath << "open faild in getFileString" << std::endl;
+    }
+    return filebuffer;
+}
+
 
 static int detect_yolo(cv::Mat& raw_img, float show_threshold)
 {
     ncnn::Net yolo;
-    yolo.load_param("yolo.proto");
-    yolo.load_model("yolo.bin");
+    std::string proto_str = getFileString("yolo.proto.bin");
+    std::string bin_str = getFileString("yolo.bin");
+    yolo.load_param((const unsigned char*) proto_str.data());
+    yolo.load_model((const unsigned char*) bin_str.data());
     int input_size = 416;
     int width = raw_img.cols;
     int height = raw_img.rows;
@@ -60,7 +89,7 @@ static int detect_yolo(cv::Mat& raw_img, float show_threshold)
     ex.set_light_mode(true);
     ex.set_num_threads(4);
     ex.input(0, in);
-    ex.extract("layer28-region", out);
+    ex.extract(91, out);
 
     printf("%d %d %d\n", out.w, out.h, out.c);
     std::vector<Object> objects;
