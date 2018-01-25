@@ -896,7 +896,6 @@ int main(int argc, char** argv)
         } else if (n.op == "elemwise_mul" || n.op == "elemwise_sub") {
             fprintf(pp, "%-16s", "BinaryOp");
         }
-        }
         else
         {
             fprintf(stderr, "%s not supported yet!\n", n.op.c_str());
@@ -1339,7 +1338,6 @@ int main(int argc, char** argv)
         } else if (n.op == "elemwise_sub") {
             int op_type = 1;
             fprintf(pp, " 0=%d", op_type);
-        }
         }
         else
         {
