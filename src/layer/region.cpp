@@ -360,13 +360,13 @@ namespace ncnn {
     int Region::forward(const std::vector<Mat>& bottom_blobs, std::vector<Mat>& top_blobs) const
     {
         const Mat& rawdata = bottom_blobs[0];
-        float * biases = anchors_.data;
+        float * biases = (float*)anchors_.data;
         int anchor_num = anchors_.w / 2;
         int w = rawdata.w;
         int h = rawdata.h;
         int c = rawdata.c;
         Mat out = rawdata.reshape(rawdata.w * rawdata.h * rawdata.c);
-        std::vector<float> detectOut = region_forward(out.data,w,h,c,class_num_,4, anchor_num, biases, nms_thresh_, conf_thresh_);
+        std::vector<float> detectOut = region_forward((float*)out.data,w,h,c,class_num_,4, anchor_num, biases, nms_thresh_, conf_thresh_);
         int object_offset = 6;
         int num_detected = detectOut.size() / object_offset;
 
