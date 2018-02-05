@@ -19,6 +19,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <iostream>
+#include <fstream>
 
 #include "net.h"
 
@@ -29,6 +30,32 @@ struct Object{
     int class_id;
     float prob;
 };
+
+std::string getFileString(const std::string& filepath) {
+    std::ifstream is(filepath);
+    std::string filebuffer="";
+    if (is.is_open()) {
+        // get length of file:
+        is.seekg (0, is.end);
+        long long length = is.tellg();
+        is.seekg (0, is.beg);
+        char * buffer = new char [length];
+        std::cout << "Reading " << filepath << " " << length << " characters... ";
+        // read data as a block:
+        is.read (buffer,length);
+        if (is)
+            std::cout << "all characters read successfully." << std::endl;
+        else
+            std::cout << "error: only " << is.gcount() << " could be read";
+        is.close();
+        // ...buffer contains the entire file...
+        filebuffer = std::string(buffer,length);
+        delete[] buffer;
+    } else {
+        std::cout << filepath << "open faild in getFileString" << std::endl;
+    }
+    return filebuffer;
+}
 
 const char* class_names[] = {"background",
                             "aeroplane", "bicycle", "bird", "boat",
@@ -46,10 +73,16 @@ static int detect_mobilenet(cv::Mat& raw_img, float show_threshold)
      */
     int img_h = raw_img.size().height;
     int img_w = raw_img.size().width;
+    std::string proto_str;
+    std::string bin_str;
 
 #if mxnet_ssd
-        mobilenet.load_param("ncnn.proto");
-        mobilenet.load_model("ncnn.bin");
+//        mobilenet.load_param("ncnn.proto");
+//        mobilenet.load_model("ncnn.bin");
+    proto_str = getFileString("ncnn.proto.bin");
+    bin_str = getFileString("ncnn.bin");
+    mobilenet.load_param((const unsigned char*) proto_str.data());
+    mobilenet.load_model((const unsigned char*) bin_str.data());
 //    mobilenet.load_param("vgg_textboxes.proto");
 //    mobilenet.load_model("vgg_textboxes.bin");
 #else
@@ -79,19 +112,12 @@ static int detect_mobilenet(cv::Mat& raw_img, float show_threshold)
 
 
     clock_t a = clock();
-    int loopNum = 1;
-    for (int loop = 0; loop < loopNum; loop++) {
-        ncnn::Extractor ex = mobilenet.create_extractor();
-        ex.set_light_mode(true);
-        ex.set_num_threads(4);
-        ex.input("data", in);
-#if mxnet_ssd
-            ex.extract("detection", out);
-#else
-            ex.extract("detection_out", out);
-#endif
+    ncnn::Extractor ex = mobilenet.create_extractor();
+    ex.set_light_mode(true);
+    ex.set_num_threads(4);
+    ex.input(0, in);
+    ex.extract(161, out);
 
-    }
     std::cout << "time: " << (clock() - a) * 1000.0 / CLOCKS_PER_SEC << std::endl;
 
 
