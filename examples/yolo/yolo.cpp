@@ -89,7 +89,7 @@ static int detect_yolo(cv::Mat& raw_img, float show_threshold)
     ex.set_light_mode(true);
     ex.set_num_threads(4);
     ex.input(0, in);
-    ex.extract(91, out);
+    ex.extract(49, out);
 
     printf("%d %d %d\n", out.w, out.h, out.c);
     std::vector<Object> objects;
