@@ -777,6 +777,13 @@ int main(int argc, char** argv)
             fprintf(pp, " 1=%d", memory_data_param.height());
             fprintf(pp, " 2=%d", memory_data_param.channels());
         }
+        else if (layer.type() == "MVN")
+        {
+            const caffe::MVNParameter& mvn_param = layer.mvn_param();
+            fprintf(pp, " 0=%d", mvn_param.normalize_variance());
+            fprintf(pp, " 1=%d", mvn_param.across_channels());
+            fprintf(pp, " 2=%f", mvn_param.eps());
+        }
         else if (layer.type() == "Normalize")
         {
             const caffe::LayerParameter& binlayer = net.layer(netidx);
@@ -1116,6 +1123,8 @@ int main(int argc, char** argv)
                 }
                 fprintf(pp, ",-233");
             }
+            int dim = slice_param.axis() - 1;
+            fprintf(pp, " 1=%d", dim);
         }
         else if (layer.type() == "Softmax")
         {
