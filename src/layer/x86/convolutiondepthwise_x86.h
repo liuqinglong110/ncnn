@@ -12,38 +12,19 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef LAYER_BATCHNORM_H
-#define LAYER_BATCHNORM_H
+#ifndef LAYER_CONVOLUTIONDEPTHWISE_X86_H
+#define LAYER_CONVOLUTIONDEPTHWISE_X86_H
 
-#include "layer.h"
+#include "convolutiondepthwise.h"
 
 namespace ncnn {
 
-class BatchNorm : public Layer
+class ConvolutionDepthWise_x86 : public ConvolutionDepthWise
 {
 public:
-    BatchNorm();
-
-    virtual int load_param(const ParamDict& pd);
-
-    virtual int load_model(const ModelBin& mb);
-
-    virtual int forward_inplace(Mat& bottom_top_blob) const;
-
-public:
-    // param
-    int channels;
-
-    // model
-    Mat slope_data;
-    Mat mean_data;
-    Mat var_data;
-    Mat bias_data;
-
-    Mat a_data;
-    Mat b_data;
+    virtual int forward(const Mat& bottom_blob, Mat& top_blob) const;
 };
 
 } // namespace ncnn
 
-#endif // LAYER_BATCHNORM_H
+#endif // LAYER_CONVOLUTIONDEPTHWISE_X86_H

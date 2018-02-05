@@ -12,38 +12,48 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef LAYER_BATCHNORM_H
-#define LAYER_BATCHNORM_H
+#ifndef NCNN_MODELBIN_H
+#define NCNN_MODELBIN_H
 
-#include "layer.h"
+#include <stdio.h>
+#include "mat.h"
+#include "platform.h"
 
 namespace ncnn {
 
-class BatchNorm : public Layer
+class Net;
+class ModelBin
 {
 public:
-    BatchNorm();
+    // element type
+    // 0 = auto
+    // 1 = float32
+    // 2 = float16
+    // 3 = uint8
+    // load vec
+    Mat load(int w, int type) const;
+    // load image
+    Mat load(int w, int h, int type) const;
+    // load dim
+    Mat load(int w, int h, int c, int type) const;
 
-    virtual int load_param(const ParamDict& pd);
+    // construct from weight blob array
+    ModelBin(const Mat* weights);
 
-    virtual int load_model(const ModelBin& mb);
+protected:
+    mutable const Mat* weights;
 
-    virtual int forward_inplace(Mat& bottom_top_blob) const;
+    friend class Net;
 
-public:
-    // param
-    int channels;
+#if NCNN_STDIO
+    ModelBin(FILE* binfp);
+    FILE* binfp;
+#endif // NCNN_STDIO
 
-    // model
-    Mat slope_data;
-    Mat mean_data;
-    Mat var_data;
-    Mat bias_data;
-
-    Mat a_data;
-    Mat b_data;
+    ModelBin(const unsigned char*& mem);
+    const unsigned char*& mem;
 };
 
 } // namespace ncnn
 
-#endif // LAYER_BATCHNORM_H
+#endif // NCNN_MODELBIN_H

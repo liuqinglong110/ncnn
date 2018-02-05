@@ -12,38 +12,35 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef LAYER_BATCHNORM_H
-#define LAYER_BATCHNORM_H
+#ifndef NCNN_BENCHMARK_H
+#define NCNN_BENCHMARK_H
 
+#include "platform.h"
+
+#if NCNN_BENCHMARK
+
+#include "mat.h"
 #include "layer.h"
 
 namespace ncnn {
 
-class BatchNorm : public Layer
+struct timeval
 {
-public:
-    BatchNorm();
-
-    virtual int load_param(const ParamDict& pd);
-
-    virtual int load_model(const ModelBin& mb);
-
-    virtual int forward_inplace(Mat& bottom_top_blob) const;
-
-public:
-    // param
-    int channels;
-
-    // model
-    Mat slope_data;
-    Mat mean_data;
-    Mat var_data;
-    Mat bias_data;
-
-    Mat a_data;
-    Mat b_data;
+    long tv_sec;
+    long tv_usec;
 };
+
+// get now timestamp
+struct timeval get_current_time();
+
+// get the time elapsed in ms
+double time_elapsed(struct timeval start, struct timeval end);
+
+void benchmark(const Layer* layer, struct timeval start, struct timeval end);
+void benchmark(const Layer* layer, const Mat& bottom_blob, Mat& top_blob, struct timeval start, struct timeval end);
 
 } // namespace ncnn
 
-#endif // LAYER_BATCHNORM_H
+#endif // NCNN_BENCHMARK
+
+#endif // NCNN_BENCHMARK_H
